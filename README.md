@@ -78,23 +78,41 @@
 /home/radxa/Desktop/rknn_yolov8_test/code/run_yolov8_camera.sh /home/radxa/Desktop/rknn_yolov8_test 22 --width 1280 --height 720 --fps 30
 ```
 
+### 4.4.1 提升画面饱和度
+
+```bash
+/home/radxa/Desktop/rknn_yolov8_test/code/run_yolov8_camera.sh /home/radxa/Desktop/rknn_yolov8_test 22 --sat_gain 1.2
+```
+
+### 4.4.2 切换 NPU 核心掩码
+
+默认使用三核：
+
+```bash
+RKNN_NPU_CORE_MASK=0_1_2 /home/radxa/Desktop/rknn_yolov8_test/code/run_yolov8_camera.sh /home/radxa/Desktop/rknn_yolov8_test 22 --no_window
+```
+
+单核对比：
+
+```bash
+RKNN_NPU_CORE_MASK=0 /home/radxa/Desktop/rknn_yolov8_test/code/run_yolov8_camera.sh /home/radxa/Desktop/rknn_yolov8_test 22 --no_window
+```
+
 ### 4.5 rkaiq 异常时自动兜底
 
 当前脚本已内置：
+- `rkaiq` 自动 workaround（默认开启）：当 `rkaiq_3A_server` 未运行时，`run_yolov8_camera.sh` 会在私有 namespace 中屏蔽 `/dev/media3` 并拉起 `rkaiq`，退出脚本后自动回收。
 - `rkaiq` 存活检测（日志会打印 `rkaiq alive: False/True`）
-- 当 `rkaiq` 不在运行时，自动启用传感器 fallback AE（通过 `v4l2-ctl` 调整 `exposure/analogue_gain`）
+- 说明：当前版本里 Python fallback AE 已按排查需求注释停用（只走 `rkaiq` 路径）
 
-常用参数：
-
-```bash
-# 指定传感器子设备并调 AE 目标亮度
-/home/radxa/Desktop/rknn_yolov8_test/code/run_yolov8_camera.sh /home/radxa/Desktop/rknn_yolov8_test 22 --sensor_subdev /dev/v4l-subdev2 --ae_target 95 --ae_interval 8
-```
+可选：如需关闭自动 workaround，可在命令前加：
 
 ```bash
-# 若你手动确认 rkaiq 已恢复，可关闭 fallback AE
-/home/radxa/Desktop/rknn_yolov8_test/code/run_yolov8_camera.sh /home/radxa/Desktop/rknn_yolov8_test 22 --disable_fallback_ae
+RKAIQ_AUTO_WORKAROUND=0 /home/radxa/Desktop/rknn_yolov8_test/code/run_yolov8_camera.sh /home/radxa/Desktop/rknn_yolov8_test 22 --no_window --max_frames 300
 ```
+
+说明：
+- `--sensor_subdev / --ae_target / --ae_interval / --disable_fallback_ae` 参数当前保留但未生效（fallback AE 代码已注释停用）。
 
 ## 5. 摄像头排查
 
@@ -146,7 +164,7 @@ PYTHONPATH=/usr/lib/python3/dist-packages /home/radxa/miniconda3/bin/conda run -
 # 预期可见 139（Segmentation fault）
 ```
 
-在官方修复前，建议使用当前脚本的 fallback AE + 软件白平衡/增亮路径。
+在官方修复前，建议使用当前脚本的 `rkaiq` workaround 路径；如需调观感，可使用 `--sat_gain` 和（可选）低光增强参数。
 
 ## 7. 脚本入口
 
